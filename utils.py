@@ -3,8 +3,7 @@ import os
 import torch.nn.init
 import numpy as np
 import pandas as pd
-from sklearn.metrics.pairwise import cosine_similarity
-from torch.nn import functional as F
+import math
 from collections import defaultdict
 
 
@@ -63,6 +62,39 @@ def self_euclid_distance(a, b):
     return torch.dist(a, b)
 
 
+def knowledge_matrix(model, params, id, q_data, qa_data):
+    parallel = len(id)
+    # 一次性加载
+    knowledge_dict = {}
+    N = int(math.floor(len(id) / parallel))  # inference 一条一条加载 一次性全加载解决id和matrix匹配问题
+    model.eval()
+
+    for idx in range(N):
+        q_one_seq = q_data[idx * parallel: (idx + 1) * parallel, :]
+        qa_one_seq = qa_data[idx * parallel: (idx + 1) * parallel, :]
+        target = qa_data[idx * parallel: (idx + 1) * parallel, :]
+
+        target = (target - 1) / params.n_question
+        target = np.floor(target)
+
+        input_q = varible(torch.LongTensor(q_one_seq), params.gpu)  # shape 1,200
+        input_qa = varible(torch.LongTensor(qa_one_seq), params.gpu)  # shape 1,200
+        target = varible(torch.FloatTensor(target), params.gpu)  # shape 1,200
+
+        target_to_1d = torch.chunk(target, parallel, 0)
+        target_1d = torch.cat([target_to_1d[i] for i in range(parallel)], 1)
+        target_1d = target_1d.permute(1, 0)
+        _, _, _, memory = model.forward(input_q, input_qa, target_1d)
+    memory_list = torch.chunk(memory, parallel, 0)
+    # knowledge_dict = {single_id:  for single_id, memory_matrix in zip(id, memory_list)}
+    for single_id, memory_matrix in zip(id, memory_list):
+        if single_id in knowledge_dict.keys():
+            knowledge_dict[single_id] += memory_matrix.squeeze()
+        else:
+            knowledge_dict.update({single_id: memory_matrix.squeeze()})
+    return knowledge_dict
+
+
 def user_distance_matrix(knowledge_matrix, params):
     """
     用于计算用户和用户之间的知识水平的欧式距离
@@ -99,11 +131,11 @@ def user_topk(user_dic, K):
 
 def user_recom_q(user_id, id_q_qa_dic, user_recom_topn, rec_q_len=-1):
     """
-
-    :param user_id:
-    :param id_q_qa_dic:
-    :param user_recom_topn:
-    :return:
+    返回推荐的习题列表
+    :param user_id: 需要推荐的用户id
+    :param id_q_qa_dic: 根据数据集构造用户id-问题-回答词典
+    :param user_recom_topn: 相似用户词典
+    :return: 推荐的习题
     """
     like_users = user_recom_topn[user_id]
     self_q = id_q_qa_dic[user_id][0]
@@ -117,7 +149,7 @@ def user_recom_q(user_id, id_q_qa_dic, user_recom_topn, rec_q_len=-1):
     if rec_q_len == -1:
         return recomd_q
     elif len(recomd_q) >= rec_q_len:
-            return recomd_q[:rec_q_len]
+        return recomd_q[:rec_q_len]
     else:
         print(f"可推荐习题数量达不到{rec_q_len}")
         return recomd_q

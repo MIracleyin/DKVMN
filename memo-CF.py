@@ -10,7 +10,6 @@ from model import MODEL
 from utils import *
 import numpy as np
 from data_loader import DATA
-from run import knowledge_matrix
 
 display_tensorshape(False)
 seed = 73

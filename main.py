@@ -120,15 +120,15 @@ def main():
     for idx in range(params.max_iter):
 
         # train_loss, train_accuracy, train_auc = train(idx, model, params, optimizer, train_q_data, train_qa_data)
-        train_loss, train_accuracy, train_auc = train(idx, model, params, optimizer, train_q_data_shuffled,
+        train_loss, train_accuracy, train_auc, train_f1 = train(idx, model, params, optimizer, train_q_data_shuffled,
                                                       train_qa_data_shuffled)
-        print('Epoch %d/%d, loss : %3.5f, auc : %3.5f, accuracy : %3.5f' % (
-        idx + 1, params.max_iter, train_loss, train_auc, train_accuracy))
+        print('Epoch %d/%d, loss : %3.5f, auc : %3.5f, accuracy : %3.5f, f1 : %.4f' % (
+        idx + 1, params.max_iter, train_loss, train_auc, train_accuracy, train_f1))
         # valid_loss, valid_accuracy, valid_auc = test(model, params, optimizer, valid_q_data, valid_qa_data)
-        valid_loss, valid_accuracy, valid_auc = test(model, params, optimizer, valid_q_data_shuffled,
+        valid_loss, valid_accuracy, valid_auc, valid_f1 = test(model, params, optimizer, valid_q_data_shuffled,
                                                      valid_qa_data_shuffled)
-        print('Epoch %d/%d, valid auc : %3.5f, valid accuracy : %3.5f' % (
-        idx + 1, params.max_iter, valid_auc, valid_accuracy))
+        print('Epoch %d/%d, valid auc : %3.5f, valid accuracy : %3.5f, f1 : %.4f' % (
+        idx + 1, params.max_iter, valid_auc, valid_accuracy, valid_f1))
 
         all_train_auc[idx + 1] = train_auc
         all_train_accuracy[idx + 1] = train_accuracy
@@ -145,8 +145,8 @@ def main():
             best_epoch = idx + 1
             best_valid_acc = valid_accuracy
             best_valid_loss = valid_loss
-            test_loss, test_accuracy, test_auc = test(model, params, optimizer, test_q_data, test_qa_data)
-            print("test_auc: %.4f\ttest_accuracy: %.4f\ttest_loss: %.4f\t" % (test_auc, test_accuracy, test_loss))
+            test_loss, test_accuracy, test_auc, test_f1 = test(model, params, optimizer, test_q_data, test_qa_data)
+            print("test_auc: %.4f\ttest_accuracy: %.4f\ttest_loss: %.4f\ttest_f1: %.4f" % (test_auc, test_accuracy, test_loss, test_f1))
             # save_checkpoint(model, memory, params.save + "/Epoch%d-test_auc%.2f-val_auc%.2f-loss%.2f.pt"%(best_epoch, test_auc, valid_auc, test_loss))
             save_path = params.save + "/Epoch%d-test_auc%.2f-val_auc%.2f-loss%.2f.pt" % (best_epoch, test_auc, valid_auc, test_loss)
             torch.save(model, save_path)

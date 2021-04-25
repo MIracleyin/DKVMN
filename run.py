@@ -60,9 +60,9 @@ def train(epoch_num, model, params, optimizer, q_data, qa_data):
     all_pred[all_pred >= 0.5] = 1.0
     all_pred[all_pred < 0.5] = 0.0
     accuracy = metrics.accuracy_score(all_target, all_pred)
-    # f1 = metrics.f1_score(all_target, all_pred)
+    f1 = metrics.f1_score(all_target, all_pred)
 
-    return epoch_loss / N, accuracy, auc
+    return epoch_loss / N, accuracy, auc, f1
 
 
 def test(model, params, optimizer, q_data, qa_data):
@@ -107,38 +107,7 @@ def test(model, params, optimizer, q_data, qa_data):
     all_pred[all_pred >= 0.5] = 1.0
     all_pred[all_pred < 0.5] = 0.0
     accuracy = metrics.accuracy_score(all_target, all_pred)
-    # f1 = metrics.f1_score(all_target, all_pred)
+    f1 = metrics.f1_score(all_target, all_pred)
 
-    return epoch_loss / N, accuracy, auc
+    return epoch_loss / N, accuracy, auc, f1
 
-def knowledge_matrix(model, params, id, q_data, qa_data):
-    parallel = len(id)
-    # 一次性加载
-    knowledge_dict = {}
-    N = int(math.floor(len(id) / parallel)) # inference 一条一条加载 一次性全加载解决id和matrix匹配问题
-    model.eval()
-
-    for idx in range(N):
-        q_one_seq = q_data[idx * parallel : (idx + 1) * parallel, :]
-        qa_one_seq = qa_data[idx * parallel : (idx + 1) * parallel, :]
-        target = qa_data[idx * parallel: (idx + 1) * parallel, :]
-
-        target = (target - 1) / params.n_question
-        target = np.floor(target)
-
-        input_q = utils.varible(torch.LongTensor(q_one_seq), params.gpu)  # shape 1,200
-        input_qa = utils.varible(torch.LongTensor(qa_one_seq), params.gpu)  # shape 1,200
-        target = utils.varible(torch.FloatTensor(target), params.gpu)  # shape 1,200
-
-        target_to_1d = torch.chunk(target, parallel, 0)
-        target_1d = torch.cat([target_to_1d[i] for i in range(parallel)], 1)
-        target_1d = target_1d.permute(1, 0)
-        _, _, _, memory = model.forward(input_q, input_qa, target_1d)
-    memory_list = torch.chunk(memory, parallel, 0)
-    # knowledge_dict = {single_id:  for single_id, memory_matrix in zip(id, memory_list)}
-    for single_id, memory_matrix in zip(id, memory_list):
-        if single_id in knowledge_dict.keys():
-            knowledge_dict[single_id] += memory_matrix.squeeze()
-        else:
-            knowledge_dict.update({single_id: memory_matrix.squeeze()})
-    return knowledge_dict
