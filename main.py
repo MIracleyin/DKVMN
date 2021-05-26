@@ -117,16 +117,28 @@ def main():
     valid_q_data_shuffled = valid_q_data[valid_shuffie_index]
     valid_qa_data_shuffled = valid_qa_data[valid_shuffie_index]
 
+    train_loss_list, train_acc_list, train_auc_list, train_f1_list = [], [], [], []
+    valid_loss_list, valid_acc_list, valid_auc_list, valid_f1_list = [], [], [], []
+
+
     for idx in range(params.max_iter):
 
         # train_loss, train_accuracy, train_auc = train(idx, model, params, optimizer, train_q_data, train_qa_data)
         train_loss, train_accuracy, train_auc, train_f1 = train(idx, model, params, optimizer, train_q_data_shuffled,
                                                       train_qa_data_shuffled)
+        train_loss_list.append(train_loss)
+        train_acc_list.append(train_accuracy)
+        train_auc_list.append(train_auc)
+        train_f1_list.append(train_f1)
         print('Epoch %d/%d, loss : %3.5f, auc : %3.5f, accuracy : %3.5f, f1 : %.4f' % (
         idx + 1, params.max_iter, train_loss, train_auc, train_accuracy, train_f1))
         # valid_loss, valid_accuracy, valid_auc = test(model, params, optimizer, valid_q_data, valid_qa_data)
         valid_loss, valid_accuracy, valid_auc, valid_f1 = test(model, params, optimizer, valid_q_data_shuffled,
                                                      valid_qa_data_shuffled)
+        valid_loss_list.append(valid_loss)
+        valid_acc_list.append(valid_accuracy)
+        valid_auc_list.append(valid_auc)
+        valid_f1_list.append(valid_f1)
         print('Epoch %d/%d, valid auc : %3.5f, valid accuracy : %3.5f, f1 : %.4f' % (
         idx + 1, params.max_iter, valid_auc, valid_accuracy, valid_f1))
 
@@ -158,6 +170,34 @@ def main():
         "valid_auc: %.4f\tvalid_accuracy: %.4f\tvalid_loss: %.4f\t" % (best_valid_auc, best_valid_acc, best_valid_loss))
     print("test_auc: %.4f\ttest_accuracy: %.4f\ttest_loss: %.4f\t" % (test_auc, test_accuracy, test_loss))
 
-
+    print(train_loss_list, train_acc_list, train_auc_list, train_f1_list,valid_loss_list, valid_acc_list, valid_auc_list, valid_f1_list)
+    train_log = 'log.txt'
+    with open(train_log, "w") as f:
+        f.write("train_loss_list================")
+        f.write(str(train_loss_list))
+        f.write("train_acc_list================")
+        f.write(str(train_acc_list))
+        f.write("train_auc_list================")
+        f.write(str(train_auc_list))
+        f.write("train_f1_lis================")
+        f.write(str(train_f1_list))
+        f.write("valid_loss_list================")
+        f.write(str(valid_loss_list))
+        f.write("valid_acc_list================")
+        f.write(str(valid_acc_list))
+        f.write("================")
+        f.write(str(valid_auc_list))
+        f.write("================")
+        f.write(str(valid_f1_list))
+    np.save("train_loss_list.npy", np.array(train_loss_list))
+    np.save("train_acc_list.npy", np.array(train_acc_list))
+    np.save("train_auc_list.npy", np.array(train_auc_list))
+    np.save("train_f1_list.npy", np.array(train_f1_list))
+    np.save("valid_loss_list.npy", np.array(valid_loss_list))
+    np.save("valid_acc_list.npy", np.array(valid_acc_list))
+    np.save("valid_auc_list.npy", np.array(valid_auc_list))
+    np.save("valid_f1_list.npy", np.array(valid_f1_list))
+    ##############################################
+    # 可视化
 if __name__ == "__main__":
     main()
